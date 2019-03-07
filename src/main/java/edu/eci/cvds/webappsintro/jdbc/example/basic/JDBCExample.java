@@ -34,10 +34,10 @@ public class JDBCExample {
     
     public static void main(String args[]){
         try {
-            String url="jdbc:mysql://HOST:3306/BD";
-            String driver="com.mysql.jdbc.Driver";
-            String user="USER";
-            String pwd="PWD";
+            String url="jdbc:mysql://desarrollo.is.escuelaing.edu.co:3306/bdprueba";
+			String driver="com.mysql.jdbc.Driver";
+			String user="bdprueba";
+			String pwd="bdprueba";
                         
             Class.forName(driver);
             Connection con=DriverManager.getConnection(url,user,pwd);
@@ -57,8 +57,8 @@ public class JDBCExample {
             System.out.println("-----------------------");
             
             
-            int suCodigoECI=20134423;
-            registrarNuevoProducto(con, suCodigoECI, "SU NOMBRE", 99999999);            
+            int suCodigoECI=2139978;
+            //registrarNuevoProducto(con, suCodigoECI, "Puerto-Caycedo", 99999999);            
             con.commit();
                         
             
@@ -81,12 +81,18 @@ public class JDBCExample {
      */
     public static void registrarNuevoProducto(Connection con, int codigo, String nombre,int precio) throws SQLException{
         //Crear preparedStatement
+		PreparedStatement NuevoProducto = null;
         //Asignar parámetros
-        //usar 'execute'
+		String NuevoProductoString = "INSERT INTO " + "ORD_PRODUCTOS " + "VALUES (?,?,?)";
+		
+        con.setAutoCommit(false);
+        NuevoProducto = con.prepareStatement(NuevoProductoString);
 
-        
+        NuevoProducto.setInt(1, codigo);
+        NuevoProducto.setString(2, nombre);
+		NuevoProducto.setInt(3, precio);
+        NuevoProducto.execute();
         con.commit();
-        
     }
     
     /**
@@ -94,16 +100,38 @@ public class JDBCExample {
      * @param con la conexión JDBC
      * @param codigoPedido el código del pedido
      * @return 
+     * @throws SQLException 
      */
-    public static List<String> nombresProductosPedido(Connection con, int codigoPedido){
+    public static List<String> nombresProductosPedido(Connection con, int codigoPedido) throws SQLException{
         List<String> np=new LinkedList<>();
         
         //Crear prepared statement
+        PreparedStatement SeleccionarProductos = null;
+        
         //asignar parámetros
+        String consultaString = "Select pr.nombre "
+        		+ "from ORD_PEDIDOS pe "
+        		+ "join ORD_DETALLES_PEDIDO d on (pe.codigo=d.pedido_fk) "
+        		+ "join ORD_PRODUCTOS pr on (pr.codigo=d.producto_fk) "
+        		+ "where pe.codigo=?";
+        con.setAutoCommit(false);
+        SeleccionarProductos = con.prepareStatement(consultaString);
+        SeleccionarProductos.setInt(1, codigoPedido);
+       
         //usar executeQuery
         //Sacar resultados del ResultSet
+        ResultSet consulta = SeleccionarProductos.executeQuery();
         //Llenar la lista y retornarla
-        
+        while (consulta.next()) {
+        	  String str = consulta.getString("pr.nombre");
+
+        	  //Assuming you have a user object
+
+
+        	  np.add(str);
+        	}
+        con.commit();
+
         return np;
     }
 
@@ -113,15 +141,30 @@ public class JDBCExample {
      * @param con
      * @param codigoPedido código del pedido cuyo total se calculará
      * @return el costo total del pedido (suma de: cantidades*precios)
+     * @throws SQLException 
      */
-    public static int valorTotalPedido(Connection con, int codigoPedido){
+    public static int valorTotalPedido(Connection con, int codigoPedido) throws SQLException{
         
         //Crear prepared statement
+    	PreparedStatement SeleccionarProductos = null;
+    	
         //asignar parámetros
+    	 String consultaString = "Select sum(precio*d.cantidad) as a "
+         		+ "from ORD_PEDIDOS pe "
+         		+ "join ORD_DETALLES_PEDIDO d on (pe.codigo=d.pedido_fk) "
+         		+ "join ORD_PRODUCTOS pr on (pr.codigo=d.producto_fk) "
+         		+ "where pe.codigo=?";
+         con.setAutoCommit(false);
+         SeleccionarProductos = con.prepareStatement(consultaString);
+         SeleccionarProductos.setInt(1, codigoPedido);
+    	
         //usar executeQuery
+         ResultSet consulta = SeleccionarProductos.executeQuery();
+         consulta.next();
         //Sacar resultado del ResultSet
-        
-        return 0;
+         int costo = consulta.getInt("a");
+         //con.commit();
+        return costo;
     }
     
 
